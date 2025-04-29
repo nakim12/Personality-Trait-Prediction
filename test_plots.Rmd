@@ -1,0 +1,82 @@
+---
+title: "Plots for Testosterone Data"
+author: "Nathan Kim"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+
+```{r setup, echo=FALSE}
+library(knitr)
+# set global chunk options: images will be 7x5 inches
+knitr::opts_chunk$set(fig.width=7, fig.height=5)
+options(digits = 4)
+
+
+## indents are for indenting r code as formatted text
+## They may need to be adjusted depending on your OS
+# if your output looks odd, increase or decrease indent
+indent1 = '    '
+indent2 = '        '
+indent3 = '            '
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(nnet)
+library(GGally)
+library(ggpubr)
+```
+
+```{r}
+test_data <- read.csv("testosterone.csv")
+length(test_data$fWHR)
+
+test_data <- test_data %>%
+  filter(fWHR < 2.75)
+
+length(test_data$fWHR)
+```
+
+```{r}
+ggplot(test_data, aes(x = fWHR, y = av_T)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", color = "blue", se = TRUE) +
+  labs(
+    title = "Relationship between FWHr and Average Testosterone",
+    x = "Facial Width-to-Height Ratio (FWHr)",
+    y = "Average Testosterone Level"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+group_test_data <- test_data %>%
+  mutate(t_level = cut(av_T, breaks = 3, labels = c("Low (<250)", "Medium (250 - 750)", "High (>750)")))
+
+group_test_data$t_level <- factor(group_test_data$t_level, levels = c("Low (<250)", "Medium (250 - 750)", "High (>750)"))
+
+group_test_median_data <- group_test_data %>%
+  group_by(t_level) %>%
+  summarize(median_fwhr = median(fWHR, na.rm = TRUE))
+
+ggplot(group_test_data, aes(x = t_level, y = fWHR, fill = t_level)) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA, color = "black") +
+  geom_point(data = group_test_median_data, aes(x = t_level, y = median_fwhr), color = "red", size = 3) +
+  geom_line(data = group_test_median_data, aes(x = as.numeric(t_level), y = median_fwhr), group = 1, color = "red", linetype = "dashed") +
+  scale_fill_manual(values = c("#66c2a5", "#fc8d62", "#8da0cb")) +
+  labs(
+    title = "FWHr Distribution by Testosterone Group",
+    x = "Testosterone Level Group",
+    y = "FWHr"
+  ) +
+  theme_minimal(base_family = "Arial", base_size = 16) +
+  theme(legend.position = "none")
+```
+
+
+

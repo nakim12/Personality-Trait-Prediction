@@ -1,0 +1,119 @@
+---
+title: "Plots for Soldier Data"
+author: "Nathan Kim"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+
+```{r setup, echo=FALSE}
+library(knitr)
+# set global chunk options: images will be 7x5 inches
+knitr::opts_chunk$set(fig.width=7, fig.height=5)
+options(digits = 4)
+
+
+## indents are for indenting r code as formatted text
+## They may need to be adjusted depending on your OS
+# if your output looks odd, increase or decrease indent
+indent1 = '    '
+indent2 = '        '
+indent3 = '            '
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(nnet)
+library(GGally)
+```
+
+```{r}
+soldier_data <- read.csv("Loehr+OHara+Finnish+soldier+data-1.csv")
+head(soldier_data)
+```
+```{r}
+small_soldier_data <- soldier_data %>%
+  select(FWHr = FACMEAS2, LRS = TOTCHILD, Intelligence = RANKWINT) %>%
+  mutate(Intelligence = factor(Intelligence,
+                               levels = c(1, 2, 3),
+                               labels = c("Low", "Medium", "High")))
+
+head(small_soldier_data)
+
+small_soldier_data %>% 
+  ggplot(aes(x = FWHr, y = Intelligence)) +
+  geom_point() 
+```
+
+
+```{r}
+lm(LRS ~ FWHr, data = small_soldier_data) %>% summary()
+```
+
+```{r}
+multinom(Intelligence ~ FWHr, data = small_soldier_data) %>%
+  summary()
+```
+
+```{r}
+ggpairs(small_soldier_data)
+```
+```{r}
+narm_intelligence <- small_soldier_data %>% filter(!is.na(Intelligence))
+
+ggplot(narm_intelligence, aes(x = Intelligence, y = FWHr, fill = Intelligence)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of FWHr by Intelligence Group", x = "Intelligence", y = "FWHr") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(narm_intelligence, aes(x = FWHr, y = LRS)) +
+  geom_point(aes(color = Intelligence)) +
+  facet_wrap(~ Intelligence) +
+  labs(title = "FWHr vs LRS by Intelligence Group", x = "FWHr", y = "LRS") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(narm_intelligence, aes(x = Intelligence, y = FWHr, fill = Intelligence)) +
+  geom_violin(trim = FALSE) +
+  labs(title = "Violin Plot of FWHr by Intelligence Group", x = "Intelligence Group", y = "FWHr") +
+  theme_minimal()
+```
+```{r}
+ggplot(narm_intelligence, aes(x = FWHr, y = LRS)) +
+  geom_point(aes(color = Intelligence)) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  coord_cartesian(ylim = c(0, 10)) +
+  labs(title = "Linear Relationship Between FWHr and LRS", x = "FWHr", y = "LRS") +
+  theme_minimal()
+```
+
+```{r}
+group_soldier_median_data <- small_soldier_data %>%
+  group_by(LRS) %>%
+  summarize(median_fwhr = median(FWHr, na.rm = TRUE))
+
+ggplot(small_soldier_data, aes(x = factor(LRS), y = FWHr)) +
+  geom_violin(fill = "lightblue", color = "black", trim = FALSE) +
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +
+  geom_point(data = group_soldier_median_data, aes(x = factor(LRS), y = median_fwhr), color = "red", size = 3) +
+  geom_line(data = group_soldier_median_data, aes(x = as.numeric(factor(LRS)), y = median_fwhr), group = 1, color = "red", linetype = "dashed") +
+  labs(
+    title = "Distribution of FWHr by Lifetime Reproductive Success (LRS)",
+    x = "LRS (Discrete Count)",
+    y = "FWHr"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "top",
+    panel.grid.major.x = element_blank()
+  )
+```
+
+
+
