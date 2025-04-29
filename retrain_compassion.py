@@ -7,13 +7,13 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
 
-# ── CLI args ───────────────────────────────────────────────
+# ── cli ───────────────────────────────────────────────
 p = argparse.ArgumentParser()
 p.add_argument("--csv",   required=True, type=Path,  help="Merged label+feature CSV")
 p.add_argument("--model", required=True, type=Path,  help="Where to save .pkl")
 args = p.parse_args()
 
-# ── load data ──────────────────────────────────────────────
+
 df = pd.read_csv(args.csv)
 
 FEATURE_COLS = [
@@ -27,12 +27,12 @@ FEATURE_COLS = [
 ]
 missing = [c for c in FEATURE_COLS if c not in df.columns]
 if missing:
-    raise SystemExit(f"❌ CSV missing columns: {missing}")
+    raise SystemExit(f"CSV missing columns: {missing}")
 
 X = df[FEATURE_COLS]
 y = df["compassion_pct"]
 
-# ── model: scaler + XGBoost regressor ──────────────────────
+# ── scaler and xgboost regressor ──────────────────────
 model = make_pipeline(
     StandardScaler(),
     XGBRegressor(
@@ -45,7 +45,7 @@ model = make_pipeline(
 )
 model.fit(X, y)
 
-# ── save artefact ──────────────────────────────────────────
+
 args.model.parent.mkdir(exist_ok=True)
 joblib.dump(model, args.model)
-print(f"✅  Saved trained model → {args.model}")
+print(f"Saved trained model: {args.model}")

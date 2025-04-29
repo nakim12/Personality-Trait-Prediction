@@ -17,20 +17,20 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parent
 MODEL_DIR = ROOT / "model_artifacts"
 
-# ── load models ───────────────────────────────────────────────────
-REG_COMPASSION   = joblib.load(MODEL_DIR / "regressor_xgb.pkl")           # ← your file
+"""load models"""
+REG_COMPASSION   = joblib.load(MODEL_DIR / "regressor_xgb.pkl")           
 REG_TESTOSTERONE = joblib.load(MODEL_DIR / "regressor_testosterone.joblib")
 CLS_RANK         = joblib.load(MODEL_DIR / "classifier_rank.joblib")
 
 RANK_LABELS = {1: "Low intelligence", 2: "Medium intelligence", 3: "High intelligence"}
 
-# ── thresholds (editable) ─────────────────────────────────────────
+
 COMP_THRESH = {"Semikind": (0, 25),
                "Kind":     (25, 60),
                "Empathetic": (60, 101)}
 TEST_THRESH = {"Low":    (0, 250),
                "Normal": (250, 750),
-               "High":   (750, 10_000)}       # 10 000 acts as “∞”
+               "High":   (750, 10_000)}       
 
 # ── feature container ────────────────────────────────────────────
 @dataclass
@@ -45,7 +45,7 @@ class LandmarkFeatures:
     def as_array(self) -> np.ndarray:
         return np.asarray(list(asdict(self).values()), np.float32)
 
-# ── MediaPipe init ───────────────────────────────────────────────
+# ── mediapipe ───────────────────────────────────────────────
 mp_face = mp.solutions.face_mesh
 FACE = mp_face.FaceMesh(static_image_mode=True,
                         refine_landmarks=True,
@@ -83,7 +83,7 @@ def extract_landmark_features(img: np.ndarray) -> LandmarkFeatures | None:
     ) / (lm[UPPER_LIP].y*h - lm[NATION].y*h + 1e-3)
     return LandmarkFeatures(fwh_ratio, mouth_angle_deg, brow_raise_norm)
 
-# ── prediction helpers ───────────────────────────────────────────
+
 def predict_traits(feat: LandmarkFeatures) -> dict[str, float]:
     comp = float(REG_COMPASSION.predict(feat.as_array().reshape(1, -1))[0])
     test = float(REG_TESTOSTERONE.predict([[feat.fwh_ratio]])[0])
@@ -92,7 +92,7 @@ def predict_traits(feat: LandmarkFeatures) -> dict[str, float]:
     return dict(compassion=comp, testosterone=test,
                 rank_class=rank_class, rank_conf=rank_conf)
 
-# ── preference match logic ───────────────────────────────────────
+# ── preference ───────────────────────────────────────
 def within(val: float, bounds: tuple[int, int]) -> bool:
     lo, hi = bounds
     return lo <= val < hi
@@ -113,11 +113,11 @@ def matches_prefs(res: dict, prefs: dict) -> bool:
             return False
     return True
 
-# ── Streamlit UI ────────────────────────────────────────────────
-st.set_page_config(page_title="Face-Forward", page_icon="🙂")
+# ── streamlit ────────────────────────────────────────────────
+st.set_page_config(page_title="Face-Forward", page_icon="")
 st.title("How Compatible and Sexy is Your Man?")
 
-# Sidebar – user preferences
+
 with st.sidebar:
     st.header("Your ideal match")
     comp_pref = st.radio("Compassion level",
@@ -144,7 +144,7 @@ if uploaded:
         st.image(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), caption="Uploaded image")
     feats = extract_landmark_features(img)
     if feats is None:
-        st.error("🙈 No face detected.")
+        st.error("No face detected.")
         st.stop()
     res = predict_traits(feats)
     is_match = matches_prefs(res, prefs)
@@ -156,17 +156,17 @@ if uploaded:
         conf_pc   = res['rank_conf'] * 100
         fwh_ratio = feats.fwh_ratio
 
-# concise metric (no cropping)
+
         st.metric("Intelligence", rank_lbl)
 
-# full details underneath
+
         st.caption(f"Confidence {conf_pc:.0f}% • fWHR {fwh_ratio:.2f}")
         st.markdown("---")
         st.subheader("Match verdict")
         if is_match:
-            st.success("✅ Perfect match!")
+            st.success("✅ Perfect match! I hope you get Married")
         else:
-            st.warning("❌ Not a match for your current preferences.")
+            st.warning("❌ You guys are not a match :(.")
         st.caption("Ranges: Low < 250 ng/dL, Normal 250-750 ng/dL, High > 750 ng/dL")
 else:
     st.info("⬆️  Upload an image to begin.")

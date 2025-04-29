@@ -16,9 +16,9 @@ model = make_pipeline(
     LogisticRegression(
         multi_class="multinomial",
         max_iter=200,
-        class_weight="balanced"   # ← key line
+        class_weight="balanced" 
     )
 )
 model.fit(X, y)
 joblib.dump(model, ROOT / "model_artifacts" / "classifier_rank.joblib")
-print("✅  Saved balanced rank model")
+print("Saved balanced rank model")

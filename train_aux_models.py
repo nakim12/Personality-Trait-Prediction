@@ -14,20 +14,16 @@ reg_T = make_pipeline(StandardScaler(), LinearRegression())
 reg_T.fit(t_df[["fWHR"]], t_df["av_T"])
 joblib.dump(reg_T, ARTIFACTS / "regressor_testosterone.joblib")
 
-# ── Rank classification (ordinal proxy for intelligence) ──────
+# ── Rank classification ───────────────────────────
 r_csv = ROOT / (
     "fWHR to lifetime reprodcutive success and military rank. - "
     "Loehr+OHara+Finnish+soldier+data.csv"
 )
 r_df = pd.read_csv(r_csv)
-
-# 1️⃣  ensure numeric, coerce bad strings → NaN
 r_df["fWHR"] = pd.to_numeric(r_df["fWHR"], errors="coerce")
-
-# 2️⃣  drop rows missing either rank or fWHR
 r_df = r_df.dropna(subset=["RANKWINT", "fWHR"])
 
-print(f"✅  Training rank model on {len(r_df)} rows after cleaning")
+print(f"Training rank model on {len(r_df)} rows after cleaning")
 
 X_R = r_df[["fWHR"]].values
 y_R = r_df["RANKWINT"].astype(int).values
